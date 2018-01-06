@@ -44,7 +44,7 @@ getwd()
 
 ## Objetivo 
 
-Tratamiento de un dataset y la reazliación de tareas con su correspondiente justificación.  
+Tratamiento de un dataset y la realización de tareas con su correspondiente justificación.  
 
 ## 1.  Descripción del dataset.  ¿Por qué es importante y qué pregunta o problemática pretende responder?
 
@@ -52,7 +52,7 @@ El dataset seleccionado es el data set es el preparado por los miembros y colabo
 
 Este data set también [está disponible en Kaggle](https://www.kaggle.com/citylines/city-lines/data).
 
-Este dataset recoge información actualizada de las líneas de metro, también llamados suburbanos o metropolitanos.  Para fines de simplificación denominaré como metro a este tipo de medio de trasnporte.
+Este dataset recoge información actualizada de las líneas de metro, también llamados suburbanos o metropolitanos.  Para fines de simplificación denominaré como metro a este tipo de medio de transporte.
 
 El dataset contiene información de varias ciudades y las líneas de metro que contiene.  También contiene información sobre cada línea, por ejemplo: fechas de apertura y cierre, número de estaciones con sus urls, y ubicación, el nombre de las líneas, etc.  También contiene información sobre cada estación: las líneas que paran ahí, ubicación, url, etc.  
 
@@ -86,7 +86,7 @@ tracks        <- read_csv("datos/tramos.csv")
 ```
 
 
-En lo que respecta al trabajo de esta práctica, una de las preguntas que se pueden plantear es sobre los motivos de ampliación de una línea de metro.  Suponemos que un aumento en la población es una razón en sí ya que es necesaria la creación de infraestructuras para el desarrollo y desplazamiento de la ciudadanía.  Por otro lado, y esta una hipótesis personal, a veces la apertura de nuevas estaciones y ampliaciones o mejoreas en las líneas es debido a deciones políticas.  Intentaré dar respuesta a si la apertura o ampliación de una línea de metro es consecuencia de una decisión política de cara a una próximas elecciones municipales.  Tomaré como ejemplo la ciudad de Madrid y su metro.  Espero que los datos me ayuden a dar respuesta a dicha preguntas, y puedan ser extensibles a otras ciudades.
+En lo que respecta al trabajo de esta práctica, una de las preguntas que se pueden plantear es sobre los motivos de ampliación de una línea de metro.  Suponemos que un aumento en la población es una razón en sí ya que es necesaria la creación de infraestructuras para el desarrollo y desplazamiento de la ciudadanía.  Por otro lado, y esta una hipótesis personal, a veces la apertura de nuevas estaciones y ampliaciones o mejoras en las líneas es debido a decisiones políticas.  Intentaré dar respuesta a si la apertura o ampliación de una línea de metro es consecuencia de una decisión política de cara a una próximas elecciones municipales.  Tomaré como ejemplo la ciudad de Madrid y su metro.  Espero que los datos me ayuden a dar respuesta a dicha preguntas, y puedan ser extensibles a otras ciudades.
 
 \pagebreak
 
@@ -141,7 +141,7 @@ El parámetro city_id es compartido por los set de datos.
 
 El parámetro stations_id es compartido con el set stations y el set lines_st.  
 
-El parámetro line_id es compatido por lines y lines_tr.
+El parámetro line_id es compartido por lines y lines_tr.
 
 De esto podemos concluir que los datos relevantes para el estudio que queremos realizar son:
 
@@ -257,7 +257,7 @@ tracks_rdx %>%
 
 ```
 
-EStas son los valores NA.
+Estas son los valores NA.
 
 ```{r}
 options(tibble.width = Inf)
@@ -331,7 +331,7 @@ tracks_mb %>%
 ```
 
 
-Aquí podemos ver  incongruencias con los datos.  Por ejemplo, en Madrid indica que se han habilitado tramos en 2025.  Esto debe ser otro error en la entrada de los datos al teclear talvez 2015 por 2025.  
+Aquí podemos ver  incongruencias con los datos.  Por ejemplo, en Madrid indica que se han habilitado tramos en 2025.  Esto debe ser otro error en la entrada de los datos al teclear tal vez 2015 por 2025.  
 
 Ahora haré lo mismo con las estaciones.
 
@@ -394,7 +394,7 @@ tracks_rdx %>%
         facet_wrap( ~ city_name)
 ```
 
-Estas comparaciones son solo ilustrativas.  Dependerá mucho de la extensión geográfica de la ciudad, también de la antiguedad de la red (Londres la más antigua, y con una historia de desarrollo de infraestructuras importante debido a la revolución industrial, su legado, etc.)  La idea de la comparación de la extensión, por ejemplo, Madrid muestran en el gráfico un grupo mayor de estaciones entre 3 y 5 kilómetros.
+Estas comparaciones son solo ilustrativas.  Dependerá mucho de la extensión geográfica de la ciudad, también de la antigüedad de la red (Londres la más antigua, y con una historia de desarrollo de infraestructuras importante debido a la revolución industrial, su legado, etc.)  La idea de la comparación de la extensión, por ejemplo, Madrid muestran en el gráfico un grupo mayor de estaciones entre 3 y 5 kilómetros.
 
 Hay que tener en cuenta que la tabla tracks_rdx no está normalizada como la tabla tracks_mb para Madrid.  En todo caso es importante preguntarse cuáles son las causas que hacen que se aumente la red del suburbano en tiempos en los que hay más incidencia del automóvil y el despliegue de otras formas de movilidad como el uso de bicicletas.
 
@@ -441,7 +441,7 @@ tracks_mb %>%
   geom_vline(xintercept = seq(1983, 2015, by = 4), color = "red", size = 1.0)
 ```
 
-Con esto quiero aclarar que personalmente consider que el metro de Madrid es un sistema eficaz y al cual valoro de forma notable.  También admiro las iniciativas recientes de incentivar su uso para disminuir la contaminación a la que se ve sometida la ciudad de Madrid en lo últimos años.  
+Con esto quiero aclarar que personalmente considero que el metro de Madrid es un sistema eficaz y al cual valoro de forma notable.  También admiro las iniciativas recientes de incentivar su uso para disminuir la contaminación a la que se ve sometida la ciudad de Madrid en lo últimos años.  
 
 Por otro lado, es importante recalcar que un uso adecuado de los recursos destinados a mejora las infraestructuras actuales es primordial y ya se han hecho acciones encaminadas a ello y que no coinciden con calendarios electorales como, por ejemplo, los trabajos realizados [en la línea 1 en 2016](http://www.rtve.es/noticias/20160701/asi-afectara-cierre-linea-1-metro-madrid-usuarios-especialmente-vallecas/1365764.shtml) y [en la línea 5 en 2017](https://elpais.com/ccaa/2017/04/30/madrid/1493571233_812007.html.) 
 
