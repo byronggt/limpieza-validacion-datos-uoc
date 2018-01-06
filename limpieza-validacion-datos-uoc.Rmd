@@ -1,0 +1,448 @@
+---
+title: "Practica 2 Limpieza y Validacion de Datos"
+author: "Luis Jerez Rincon"
+date: '`r format(Sys.Date(),"%e de %B, %Y")`'
+output:
+  html_document:
+    toc: yes
+    toc_depth: 2
+    toc_float: yes
+  pdf_document:
+    toc: yes
+  word_document:
+    toc: yes
+urlcolor: blue
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(out.width='1000px', dpi=200, echo = TRUE, eval = TRUE, tibble.width = Inf)
+```
+
+```{r load-libraries, include = FALSE}
+library(easypackages)
+libraries("lubridate",     # para trabajo con fechas
+          "tidytext",      # para análisis de texto si fuese necesario
+          "tidyr",         # ordenamiento de variables, spread(), gather(), etc.
+          "pander",        # para mostrar elementos data.frame (issue con Rmarkdown)
+          "stringr",       # para regular expressions junto con similares en base-R
+          "broom",         # transforma resultados de modelos en tidy data frames
+          "knitr",         # opciones de renderización, tablas, etc.
+          "dplyr",         # los siguientes paquetes del paquete tidyverse
+          "ggplot2",
+          "broom",
+          "readr")     
+           
+
+```
+
+```{r check-dir, include = FALSE}
+getwd()
+
+```
+
+\pagebreak
+
+## Objetivo 
+
+Tratamiento de un dataset y la reazliación de tareas con su correspondiente justificación.  
+
+## 1.  Descripción del dataset.  ¿Por qué es importante y qué pregunta o problemática pretende responder?
+
+El dataset seleccionado es el data set es el preparado por los miembros y colaboradores del equipo detrás de [City Lines]().
+
+Este data set también [está disponible en Kaggle](https://www.kaggle.com/citylines/city-lines/data).
+
+Este dataset recoge información actualizada de las líneas de metro, también llamados suburbanos o metropolitanos.  Para fines de simplificación denominaré como metro a este tipo de medio de trasnporte.
+
+El dataset contiene información de varias ciudades y las líneas de metro que contiene.  También contiene información sobre cada línea, por ejemplo: fechas de apertura y cierre, número de estaciones con sus urls, y ubicación, el nombre de las líneas, etc.  También contiene información sobre cada estación: las líneas que paran ahí, ubicación, url, etc.  
+
+El set está dividido en 7 tablas:
+
+* a. Ciudades
+* b. Estaciones
+* c. Líneas
+* d. Líneas y sus estaciones
+* e. Líneas y sus tramos
+* f. Sistemas
+* g. Tramos
+
+Un vistazo a los kernels en Kaggle que se han creado a partir de ests data set se puede apreciar que se utilizado para dar respuestas a las siguientes preguntas:
+
+
+
+
+
+### 1. Carga de los set de datos correspondientes
+
+```{r message=FALSE, warning=FALSE, include=FALSE, paged.print=FALSE}
+cities        <- read_csv("datos/ciudades.csv")
+stations      <- read_csv("datos/estaciones.csv")
+lines         <- read_csv("datos/lineas.csv")
+lines_st      <- read_csv("datos/lineas_estaciones.csv")
+lines_tr      <- read_csv("datos/lineas_tramos.csv")
+syst          <- read_csv("datos/sistemas.csv")
+tracks        <- read_csv("datos/tramos.csv")
+
+```
+
+
+En lo que respecta al trabajo de esta práctica, una de las preguntas que se pueden plantear es sobre los motivos de ampliación de una línea de metro.  Suponemos que un aumento en la población es una razón en sí ya que es necesaria la creación de infraestructuras para el desarrollo y desplazamiento de la ciudadanía.  Por otro lado, y esta una hipótesis personal, a veces la apertura de nuevas estaciones y ampliaciones o mejoreas en las líneas es debido a deciones políticas.  Intentaré dar respuesta a si la apertura o ampliación de una línea de metro es consecuencia de una decisión política de cara a una próximas elecciones municipales.  Tomaré como ejemplo la ciudad de Madrid y su metro.  Espero que los datos me ayuden a dar respuesta a dicha preguntas, y puedan ser extensibles a otras ciudades.
+
+\pagebreak
+
+## 2. Limpieza de datos
+
+### 1. Selección de datos a analizar. ¿Cuáles son los campos más relevantes para responder al problema?
+
+Estos son los campos de cada una de los set de datos.  Así podemos identificar cuáles son los datos comunes entre cada uno de ellos:
+
+```{r}
+nms_cities <- tibble(names(cities))
+nms_stations <- tibble(names(stations))
+nms_lines <- tibble(names(lines))
+nms_lines_st <- tibble(names(lines_st))
+nms_lines_tr <- tibble(names(lines_tr)) 
+nms_syst <- tibble(names(syst))
+nms_tracks <- tibble(names(tracks))
+
+```
+
+```{r}
+nms_cities
+
+```
+
+
+```{r}
+nms_stations
+```
+```{r}
+nms_lines
+
+```
+
+```{r}
+nms_lines_st
+```
+
+```{r}
+nms_lines_tr
+```
+
+```{r}
+nms_syst
+```
+
+```{r}
+nms_tracks
+```
+
+El parámetro city_id es compartido por los set de datos.  
+
+El parámetro stations_id es compartido con el set stations y el set lines_st.  
+
+El parámetro line_id es compatido por lines y lines_tr.
+
+De esto podemos concluir que los datos relevantes para el estudio que queremos realizar son:
+
+* a. Del set cities:
+      * id
+      * name
+      * start_year
+      * country
+      
+* b. Del set stations:
+      * id
+      * name
+      * city_id
+      * opening
+
+* b. Del set lines:
+      * id
+      * name
+      * city_id
+
+* b. Del set tracks:
+      * id
+      * city_id
+      * opening
+      * length
+
+
+Procedemos a cambiar algunos nombres de variables para distinguirlos según set, y seleccionamos aquellas columnas que usaremos para nuestro análisis.  
+
+```{r}
+cities_rdx <- cities %>% rename(city_id = id, city_name = name) %>% select(city_id, city_name, country)
+stations_rdx <- stations %>% 
+  rename(station_id = id, station_name = name, opening_stat = opening) %>% 
+  select(station_id, station_name, opening_stat, city_id)
+lines_rdx <- lines %>% mutate(line_id = id, line_name = name) %>% select(line_id, line_name, city_id)
+tracks_rdx <- tracks %>% rename(track_id = id, opening_trck = opening) %>% select(track_id, city_id, opening_trck, length)
+
+```
+
+
+
+A partir de aquí podemos obtener información de cada grupo de datos según las preguntas incluidas en el enunciado de la práctica
+
+
+### 3. ¿Los datos contienen ceros o elementos vacíos? ¿Y valores extremos? ¿Cómo gestionarías cada uno de estos casos?
+
+Obtenemos el resumen de los datos:
+
+```{r}
+summary(cities_rdx)
+```
+
+```{r}
+summary(stations_rdx)
+```
+
+Vemos que la variable fecha de apertura (opening_stat) contiene valores extremos, quizá debido a una entrada de datos errónea.  También contiene 81 fechas marcadas no disponibles y otras marcadas como 0's.
+
+
+```{r}
+summary(lines_rdx)
+```
+
+```{r}
+summary(tracks_rdx)
+```
+
+
+
+Algo parecido pasas con la información de la fecha de apertura de la vía (opening_track), datos vacíos y no disponibles y valores extremos probablemente provenientes de errores de entrada de datos.
+
+Revisará la situación de las variables opening_trck, y opening_stat
+
+Este es la imagen del boxplot.
+
+
+```{r}
+tracks_rdx %>%
+  ggplot(aes(x = factor(0), y = opening_trck)) +
+  geom_boxplot(outlier.color = "red",
+		        outlier.size =  4,
+		        outlier.shape = 8) +
+  xlab(" ") + 
+  coord_flip()
+
+```
+
+Añadimos las ciudades para ver cuáles son las que presentan problemas
+
+
+```{r}
+options(tibble.width = Inf)
+
+tracks_rdx %>% 
+  inner_join(cities_rdx) %>% 
+  filter(opening_trck > 9999) %>% 
+  select(city_name, opening_trck, length)
+
+
+```
+
+
+Y aquellas que muestran los valores 0
+
+```{r}
+options(tibble.width = Inf)
+
+tracks_rdx %>% 
+  inner_join(cities_rdx) %>% 
+  filter(opening_trck == 0) %>% 
+  select(city_name, opening_trck, length) %>% 
+  count(city_name)
+
+```
+
+EStas son los valores NA.
+
+```{r}
+options(tibble.width = Inf)
+
+tracks_rdx %>% 
+  inner_join(cities_rdx) %>% 
+  filter(is.na(opening_trck)) %>% 
+  select(city_name, opening_trck, length) %>% 
+  count(city_name)
+
+```
+
+
+Para las fechas de apertura de las estaciones tendríamos:
+
+```{r}
+options(tibble.width = Inf)
+
+stations_rdx %>% 
+  inner_join(cities_rdx) %>% 
+  filter(opening_stat > 9999) %>% 
+  select(city_name, opening_stat)
+```
+
+Los valores 0
+
+```{r}
+options(tibble.width = Inf)
+
+stations_rdx %>% 
+  inner_join(cities_rdx) %>% 
+  filter(opening_stat == 0) %>% 
+  select(city_name, opening_stat) %>% 
+  count(city_name)
+```
+
+y los valores NA
+
+```{r}
+options(tibble.width = Inf)
+
+stations_rdx %>% 
+  inner_join(cities_rdx) %>% 
+  filter(is.na(opening_stat)) %>% 
+  select(city_name, opening_stat) %>% 
+  count(city_name)
+
+```
+
+La pregunta a responder corresponde en específico a Madrid.  
+
+Crearé un nuevo set de datos que incluya la información sobre tramos y estaciones de vía tanto y volveré a realizar la identificación de dichos valores.
+
+```{r}
+tracks_mb <- tracks_rdx %>% 
+              inner_join(cities_rdx) %>% 
+              filter(city_name == "Madrid")
+
+tracks_mb %>% head()
+
+
+              
+```
+
+Revisamos ahora los años de apertura de las estaciones 
+
+```{r}
+tracks_mb %>% 
+  ggplot(aes(opening_trck)) + 
+  geom_bar(stat = "count")
+```
+
+
+Aquí podemos ver  incongruencias con los datos.  Por ejemplo, en Madrid indica que se han habilitado tramos en 2025.  Esto debe ser otro error en la entrada de los datos al teclear talvez 2015 por 2025.  
+
+Ahora haré lo mismo con las estaciones.
+
+```{r}
+stations_mb <- stations_rdx %>% 
+              inner_join(cities_rdx) %>% 
+              filter(city_name == "Madrid") %>% 
+              mutate(station_name = str_replace(station_name, "\n\n", ""))
+
+View(stations_mb)
+```
+
+Ahora veremos la gráfica correspondiente
+
+```{r}
+stations_mb %>% 
+  ggplot(aes(opening_stat)) + 
+  geom_bar(stat = "count") + 
+  ylab("estaciones inauguradas") +
+  xlab("Año apertura")
+```
+
+
+Esta gráfica muestra picos interesantes.  Podemos ver que en 2015, 2011, 2007, 2003, 1999 se inauguraron varias estaciones de metro.  Estos años coinciden con [elecciones municipales en la Comunidad de Madrid](https://es.wikipedia.org/wiki/Elecciones_a_la_Asamblea_de_Madrid).  
+
+
+Agregaré a la tabla de las estaciones la información de las líneas correspondientes para hacerla más completa
+
+```{r}
+stations_mb <- stations_mb %>% 
+               inner_join(lines_st)
+               
+
+stations_mb <- stations_mb %>% select(station_name, line_name, opening_stat)
+
+```
+
+
+## 3. Análisis de datos
+
+A partir de lo anteriormente expuesto, podemos hacer los siguientes análisis y comparaciones.
+
+Tomando como premisa la longitud en kilómetros de tramos de metro en la cuidad de Madrid, hacemos un histograma de frecuencias para ver la distribución en kilómetros de los tramos del metro de Madrid
+
+```{r}
+tracks_mb %>% 
+  ggplot(aes(length)) + 
+  geom_histogram(binwidth = 2000)
+ 
+```
+
+
+
+```{r}
+tracks_rdx %>% 
+        inner_join(cities_rdx) %>% 
+        filter(city_name %in% c("Madrid", "Barcelona", "London")) %>% 
+        ggplot(aes(length, color = city_name)) +
+        geom_histogram() +
+        facet_wrap( ~ city_name)
+```
+
+Estas comparaciones son solo ilustrativas.  Dependerá mucho de la extensión geográfica de la ciudad, también de la antiguedad de la red (Londres la más antigua, y con una historia de desarrollo de infraestructuras importante debido a la revolución industrial, su legado, etc.)  La idea de la comparación de la extensión, por ejemplo, Madrid muestran en el gráfico un grupo mayor de estaciones entre 3 y 5 kilómetros.
+
+Hay que tener en cuenta que la tabla tracks_rdx no está normalizada como la tabla tracks_mb para Madrid.  En todo caso es importante preguntarse cuáles son las causas que hacen que se aumente la red del suburbano en tiempos en los que hay más incidencia del automóvil y el despliegue de otras formas de movilidad como el uso de bicicletas.
+
+Un tema que me interesa es ese debido a que en la ciudad que vivo, Madrid, ha habido comentarios sobre el [sobre-dimensionamiento de la red](http://www.20minutos.es/noticia/2265980/0/estaciones-menos-utilizadas/metro-madrid/grandes-ampliaciones/), hecho que puede obedecer a unas decisiones que no estén respondiendo a necesidades sociales, por lo menos no directamente, y quizá sea una respuesta a una estrategia política.
+
+
+## 4. Representación a partir de tablas y gráficos
+
+Estos se pueden ver en los puntos anteriores
+
+
+## 5. Resolución del problema.  A partir de los resultados obtenidos, ¿cuáles son las conclusiones, ¿Los resultados permiten responder al problema?
+
+Como hemos visto anterioremente, la ampliación de la red de metro tanto en tramos como en estaciones en lo que corresponde a Madrid pudo obedecer a decisiones políticas de cara a las elecciones municipales anteriores a 2015. 
+
+Los comentarios sobre estaciones infrautilizadas, e inversiones a veces no se corresponden con la realidad que los usuarios se han ido encontrado: [retrasos](http://www.elmundo.es/madrid/2015/09/02/55e6025aca4741a2038b4595.html), [rentabilidad por encima del servicio](http://www.eldiario.es/sociedad/transporte-publico-peligro_0_223627763.html), entre otras.
+
+Como se puede ver en enlace anterior sobre los años en los que ha habido elecciones para la Asamblea de Madrid, estas se llevan a cabo cada 4 años, iniciando en 1983 en el inicio de la democracia.  Las últimas se realizaron en 2015.  Las próximas serán en 2019.
+
+En la siguiente gráfica muestro los años de elecciones para resaltar el aumento en aperturas de tramos y estaciones.
+
+Esta es la gráfica con respecto a las estaciones
+
+```{r}
+stations_mb %>% 
+  ggplot(aes(opening_stat)) + 
+  geom_bar(stat = "count") + 
+  ylab("estaciones inauguradas") +
+  xlab("Año apertura") + 
+  geom_vline(xintercept = seq(1983, 2015, by = 4), color = "red", size = 1.0)
+```
+
+Esta es la gráfica con respecto a los tramos.
+
+
+
+```{r}
+tracks_mb %>% 
+  filter(opening_trck != 2025) %>% 
+  ggplot(aes(opening_trck)) + 
+  geom_bar(stat = "count") + 
+  ylab("tramos inaugurados") +
+  xlab("Año apertura") + 
+  geom_vline(xintercept = seq(1983, 2015, by = 4), color = "red", size = 1.0)
+```
+
+Con esto quiero aclarar que personalmente consider que el metro de Madrid es un sistema eficaz y al cual valoro de forma notable.  También admiro las iniciativas recientes de incentivar su uso para disminuir la contaminación a la que se ve sometida la ciudad de Madrid en lo últimos años.  
+
+Por otro lado, es importante recalcar que un uso adecuado de los recursos destinados a mejora las infraestructuras actuales es primordial y ya se han hecho acciones encaminadas a ello y que no coinciden con calendarios electorales como, por ejemplo, los trabajos realizados [en la línea 1 en 2016](http://www.rtve.es/noticias/20160701/asi-afectara-cierre-linea-1-metro-madrid-usuarios-especialmente-vallecas/1365764.shtml) y [en la línea 5 en 2017](https://elpais.com/ccaa/2017/04/30/madrid/1493571233_812007.html.) 
+
+Finalmente, quisiera añadir que está previstas [para 2019 y 2023](http://www.expansion.com/economia/politica/2017/09/21/59c3bd7446163f9d058b469b.html) (según el calendario municipal) ampliaciones en la red y aperturas de nuevas estaciones que beneficiarán la periferia de Madrid.
